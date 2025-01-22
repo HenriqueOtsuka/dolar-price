@@ -1,0 +1,25 @@
+FROM golang:1.23-alpine as builder
+
+RUN apk update \
+    && apk add ca-certificates gcc musl-dev \
+    && rm -rf /var/cache/apk/*
+
+WORKDIR /dist
+
+COPY go.mod go.sum ./
+
+RUN go mod download
+
+ADD . /dist/
+
+ENV CGO_ENABLED=1
+
+RUN go build -o /dist/server /dist/main.go
+
+FROM alpine:latest
+
+WORKDIR /
+
+COPY --from=builder /dist/server /server
+
+CMD ["/server"]
